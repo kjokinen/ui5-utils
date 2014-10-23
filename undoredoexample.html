@@ -1,0 +1,108 @@
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+ 
+    <script src="https://sapui5.hana.ondemand.com/resources/sap-ui-core.js"
+        id="sap-ui-bootstrap"
+         data-sap-ui-libs="sap.ui.commons, sap.m, sap.ui.table"
+        data-sap-ui-theme="sap_bluecrystal"
+        type="text/javascript">
+    </script>
+
+    <script type="text/javascript">
+      jQuery(function() { 
+        sap.ui.localResources("util");
+        jQuery.sap.require("util/undoredo"); 
+        // create model
+        var beers = [
+          {"style": "Imperial Stout", "name": "Plevna Siperia", "rating": 3},
+          {"style": "Weissbier", "name": "Paulaner Naturtrüb", "rating": 3},
+          {"style": "India Pale ale", "name": "Founders Centennial IPA", "rating": 3},
+          {"style": "Trappist", "name": "Orval", "rating": 3},
+        ];
+        var modelJson = {"listItems": beers};
+        var model = new sap.ui.model.json.JSONModel(modelJson);
+        sap.ui.getCore().setModel(model);
+
+        // initialize undo redo component and wrap JSONModel with it
+        var undoRedoComponent = util.undoRedo(model);
+        // TABLE STARTS HERE
+
+        //Create an instance of the table control
+        var oTable = new sap.ui.table.Table({
+          title: "Beers table",
+          visibleRowCount: 7,      
+          firstVisibleRow: 3,
+          columnHeaderHeight: 30,    
+          selectionMode: sap.ui.table.SelectionMode.Single,
+          toolbar: new sap.ui.commons.Toolbar({items: [ 
+            new sap.ui.commons.Button({text: "Undo", press: function() {
+              undoRedoComponent.undo();
+              // we need to refresh the model to show changes
+              model.refresh(true);
+            }})
+          ]}),
+          extension: [
+            new sap.ui.commons.Button({text: "Redo", press: function() { 
+              undoRedoComponent.redo(); 
+              // we need to refresh the model to show changes
+              model.refresh(true);
+            }})
+          ]
+        });
+
+        //Define the columns and the control templates to be used
+        var oColumn = new sap.ui.table.Column({
+          label: new sap.ui.commons.Label({text: "Name"}),
+          template: new sap.ui.commons.TextView().bindProperty("text", "name"),
+          sortProperty: "name",
+          filterProperty: "name",
+          width: "200px",
+          editable: false
+        });
+        var oColumn2 = new sap.ui.table.Column({
+          label: new sap.ui.commons.Label({text: "Style"}),
+          template: new sap.ui.commons.TextView().bindProperty("text", "style"),
+          sortProperty: "style",
+          filterProperty: "style",
+          width: "200px",
+          editable: false
+        });
+        // BindingMode should be Oneway because undoRedo does not listen to changes in the model directly
+        var oColumn3 = new sap.ui.table.Column({
+          label: new sap.ui.commons.Label({text: "Rating"}),
+          template: new sap.ui.commons.RatingIndicator({
+            maxValue: 5,
+            change: function(evt) {              
+              var value = evt.mParameters.value;
+              var bindingContext = evt.getSource().getBindingContext(); 
+              window.console&&console.log("binding context is " + bindingContext);
+              undoRedoComponent.setProperty(bindingContext.sPath + "/rating", value);
+            }
+          }).bindValue("rating", null, sap.ui.model.BindingMode.OneWay), 
+          sortProperty: "rating",
+          filterProperty: "rating",
+          width: "200px"
+        });
+        var oCustomMenu = new sap.ui.commons.Menu();
+        oCustomMenu.addItem(new sap.ui.commons.MenuItem({
+          text:"Custom Menu",
+          select:function() {
+            alert("Custom Menu");
+          }
+        }));
+        oColumn.setMenu(oCustomMenu);
+        oTable.addColumn(oColumn);
+        oTable.addColumn(oColumn2);
+        oTable.addColumn(oColumn3);
+        oTable.bindRows("/listItems");
+        oTable.placeAt('content');
+      });
+    </script>
+
+  </head>
+  <body class="sapUiBody">
+    <div id="content"></div>
+  </body>
+</html>
