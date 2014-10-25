@@ -1,0 +1,108 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<script src="https://openui5.hana.ondemand.com/resources/sap-ui-core.js"
+							  id="sap-ui-bootstrap"
+							  data-sap-ui-libs="sap.m, sap.ui.commons"
+							  data-sap-ui-theme="sap_bluecrystal">
+		</script>
+	</head>   
+	<body class="sapUiBody" role="application">
+		<script>
+			// let UI5 know that certain package (the one containing the Views/Controllers) is available locally (next to the HTML file)
+		    sap.ui.localResources("util");
+			jQuery.sap.require("util/fuzzysearch");			
+			// init model
+        	var aCountriesOfEurope = ["Bulgaria", "Croatia", "Cyprus", "Czech Republic", "Denmark", "Estonia", "Finland", "France",
+                          "Germany", "Greece", "Hungary", "Iceland", "Albania", "Andorra", "Austria", "Belarus", "Belgium",
+                          "Bosnia and Herzegovina", "Ireland", "Italy", "Latvia", "Liechtenstein", "Lithuania", "Luxembourg",
+                          "Macedonia", "Malta", "Moldova", "Monaco", "Netherlands", "Norway", "Poland", "Portugal", "Romania",
+                          "Russia", "San Marino", "Serbia and Montenegro", "Slovakia (Slovak Republic)", "Slovenia", "Spain",
+                          "Sweden", "Switzerland", "Turkey", "Ukraine", "United Kingdom", "Vatican City"];
+			aCountriesOfEurope.sort();
+			var countryJson = {"countries": aCountriesOfEurope};
+			var countryModel = new sap.ui.model.json.JSONModel(countryJson);
+		
+
+			var vbox = new sap.m.VBox();
+			var label1 = new sap.m.Text({text:"Fuzzy search with list for results"});
+			vbox.addItem(label1);
+			//Help function to filter the countries according to the given prefix
+			var filterCountries = function(searchString){
+				if (searchString) {
+					var options = {
+						threshold: 0.4,
+						//keys: ['countries'] // key to search in
+					}
+					var fuzzySearch = util.fuzzysearch(countryModel, "/countries", options);
+					var results = fuzzySearch.search(searchString);
+					return results;
+				}
+				return [];				
+			};
+
+			//Help function to update a listbox with the filtered countries
+			var updateList = function(oListBox, sPrefix){
+				oListBox.destroyItems(); //Destroy all existing items first
+				var aCountries = filterCountries(sPrefix); //Find the countries
+				for(var i=0; i<aCountries.length; i++){
+					var country = aCountriesOfEurope[aCountries[i]];
+					oListBox.addItem(new sap.ui.core.ListItem({text:country}));
+				}
+			};
+
+			// create the SearchField
+			var oSearch = new sap.ui.commons.SearchField("liveSearch", {
+				enableListSuggest: false,
+				enableClear: true,
+				startSuggestion: 0,
+				search: function(oEvent){
+					alert("Search triggered: " + oEvent.getParameter("query"));
+				},
+				suggest: function(oEvent){
+					updateList(oListBox, oEvent.getParameter("value"));
+				}
+			});
+
+			vbox.addItem(oSearch);			
+			// create a list box to show the results
+			var oListBox = new sap.ui.commons.ListBox("liveSearchLB", {visibleItems:5, width:"200px"});
+			// initialize the list
+			updateList(oListBox);			
+			vbox.addItem(oListBox);
+
+			//Help function to handle the suggest events of the search field
+			var doSuggest = function(oEvent){
+				var sVal = oEvent.getParameter("value");
+				var aSuggestions = [];
+				var aCountries = filterCountries(sVal); //Find the countries (see example above)
+				var oSearchControl = sap.ui.getCore().byId(oEvent.getParameter("id"));
+				for(var i=0; i<aCountries.length; i++){
+					var country = aCountriesOfEurope[aCountries[i]];
+					aSuggestions.push(country);
+				}
+				oSearchControl.suggest(sVal, aSuggestions); //Set the found suggestions on the search control
+			};
+
+			//create a simple SearchField with suggestion list (list expander hidden)
+			var oSearch2 = new sap.ui.commons.SearchField("suggestSearch2", {
+				enableListSuggest: true,
+				showListExpander: false,
+				startSuggestion: 2,
+				search: function(oEvent){
+					alert("Search triggered: " + oEvent.getParameter("query"));
+				},
+				suggest: doSuggest
+			});
+			//attach it to some element in the page
+			//oSearch.placeAt("content");
+			var label2 = new sap.m.Text({text:"Fuzzy search with sap.ui.commons.SearchField suggest"});
+			vbox.addItem(label2);
+			vbox.addItem(oSearch2);
+			vbox.placeAt("content");
+
+		</script>		
+		<div id="content"></div>
+    </body>
+</html>
